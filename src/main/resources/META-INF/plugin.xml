@@ -1,0 +1,164 @@
+<idea-plugin>
+    <id>com.irulast.cloudnativepg</id>
+    <name>CloudNativePG Connector</name>
+    <vendor email="support@irulast.com" url="https://irulast.com">Irulast</vendor>
+
+    <description><![CDATA[
+    <p>Connect to <a href="https://cloudnative-pg.io/">CloudNativePG</a> PostgreSQL clusters running in Kubernetes directly from your JetBrains IDE.</p>
+
+    <p>One click to discover clusters, establish secure connections, and start querying your databases.</p>
+
+    <h3>Features</h3>
+    <ul>
+        <li><b>Automatic Discovery</b> - Finds all CloudNativePG clusters across namespaces in your Kubernetes contexts</li>
+        <li><b>One-Click Connect</b> - Establishes kubectl port-forwarding with a single click</li>
+        <li><b>Secure Credentials</b> - Automatically extracts credentials from Kubernetes secrets</li>
+        <li><b>Database Tools Integration</b> - Creates data sources in JetBrains Database Tools for full SQL support</li>
+        <li><b>Multi-Context Support</b> - Switch between Kubernetes contexts to access clusters in different environments</li>
+        <li><b>Primary &amp; Replica Connections</b> - Connect to the primary instance or read-only replicas</li>
+        <li><b>Connection Management</b> - Automatically reconnects on IDE startup and cleans up when data sources are removed</li>
+    </ul>
+
+    <h3>Getting Started</h3>
+    <ol>
+        <li>Open the <b>CloudNativePG</b> tool window from the right sidebar</li>
+        <li>Select your Kubernetes context from the dropdown</li>
+        <li>Browse your clusters organized by namespace</li>
+        <li>Double-click a cluster to connect (or right-click for more options)</li>
+        <li>The database appears in Database Tools, ready to query</li>
+    </ol>
+
+    <h3>Alternative: From Database Window</h3>
+    <ol>
+        <li>In the Database window, click <b>+</b> (New) or right-click</li>
+        <li>Select <b>"Data Source from CloudNativePG"</b></li>
+        <li>Choose your Kubernetes context and cluster</li>
+        <li>Click Connect</li>
+    </ol>
+
+    <h3>Requirements</h3>
+    <ul>
+        <li>Kubernetes cluster with <code>kubectl</code> access configured</li>
+        <li>CloudNativePG operator installed in your cluster</li>
+        <li>RBAC permissions to list clusters and read secrets</li>
+    </ul>
+
+    <p><em>Created by <a href="https://irulast.com">Irulast</a> - Your Application, In Production.</em></p>
+    ]]></description>
+
+    <change-notes><![CDATA[
+    <h3>1.0.0</h3>
+    <ul>
+        <li>Initial public release</li>
+        <li>CloudNativePG cluster discovery across all namespaces</li>
+        <li>One-click port-forwarding to primary and replica instances</li>
+        <li>Automatic credential extraction from Kubernetes secrets</li>
+        <li>Full JetBrains Database Tools integration</li>
+        <li>Multi-context Kubernetes support</li>
+        <li>Auto-reconnect on IDE startup</li>
+        <li>Automatic cleanup when data sources are removed</li>
+        <li>Tool window with active connections panel</li>
+        <li>Connection troubleshooting via configure button</li>
+    </ul>
+    ]]></change-notes>
+
+    <!-- Required dependencies -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.database</depends>
+
+    <!-- Optional: Reuse JetBrains K8s plugin config -->
+    <depends optional="true" config-file="k8s-integration.xml">com.intellij.kubernetes</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Tool Window -->
+        <toolWindow id="CloudNativePG"
+                    anchor="right"
+                    icon="/icons/cnpg.svg"
+                    factoryClass="com.irulast.cloudnativepg.intellij.ui.CnpgToolWindowFactory"/>
+
+        <!-- Settings -->
+        <applicationConfigurable
+                parentId="tools"
+                instance="com.irulast.cloudnativepg.intellij.settings.CnpgSettingsConfigurable"
+                id="com.irulast.cloudnativepg.intellij.settings"
+                displayName="CloudNativePG Connector"/>
+
+        <applicationService
+                serviceImplementation="com.irulast.cloudnativepg.intellij.settings.CnpgSettings"/>
+
+        <!-- Services -->
+        <applicationService
+                serviceImplementation="com.irulast.cloudnativepg.intellij.kubernetes.KubernetesClientProvider"/>
+        <applicationService
+                serviceImplementation="com.irulast.cloudnativepg.intellij.services.CnpgService"/>
+        <applicationService
+                serviceImplementation="com.irulast.cloudnativepg.intellij.services.PortForwardService"/>
+        <applicationService
+                serviceImplementation="com.irulast.cloudnativepg.intellij.services.ConnectionManager"/>
+        <projectService
+                serviceImplementation="com.irulast.cloudnativepg.intellij.services.DatabaseToolsService"/>
+        <projectService
+                serviceImplementation="com.irulast.cloudnativepg.intellij.services.ManagedConnectionService"/>
+
+        <!-- Startup Activity - Initialize connection management when project opens -->
+        <postStartupActivity
+                implementation="com.irulast.cloudnativepg.intellij.listeners.CnpgStartupActivity"/>
+
+        <!-- Notifications -->
+        <notificationGroup id="CloudNativePG Connector"
+                          displayType="BALLOON"
+                          isLogByDefault="true"/>
+        <!-- Sticky notifications for actions that require user attention -->
+        <notificationGroup id="CloudNativePG Connector - Action Required"
+                          displayType="STICKY_BALLOON"
+                          isLogByDefault="true"
+                          toolWindowId="CloudNativePG"/>
+    </extensions>
+
+    <actions>
+        <!-- Database Window Integration - Add "CloudNativePG Cluster..." to New/Add Data Source menu -->
+        <action id="Cnpg.NewDataSource"
+                class="com.irulast.cloudnativepg.intellij.actions.NewCnpgDataSourceAction"
+                text="Data Source from CloudNativePG"
+                description="Create a data source from a CloudNativePG cluster in Kubernetes"
+                icon="/icons/cnpg.svg">
+            <add-to-group group-id="DatabaseView.AddDataSourceGroup" anchor="first"/>
+            <add-to-group group-id="DatabaseViewPopupMenu" anchor="first"/>
+        </action>
+
+        <group id="Cnpg.ToolWindow.Toolbar" text="CloudNativePG Toolbar">
+            <action id="Cnpg.Refresh"
+                    class="com.irulast.cloudnativepg.intellij.actions.RefreshAction"
+                    text="Refresh"
+                    description="Refresh CloudNativePG clusters"
+                    icon="AllIcons.Actions.Refresh"/>
+            <separator/>
+            <action id="Cnpg.Settings"
+                    class="com.irulast.cloudnativepg.intellij.actions.OpenSettingsAction"
+                    text="Settings"
+                    description="Open CloudNativePG Connector settings"
+                    icon="AllIcons.General.Settings"/>
+        </group>
+
+        <group id="Cnpg.TreeContextMenu" text="CloudNativePG Context Menu" popup="true">
+            <action id="Cnpg.Connect"
+                    class="com.irulast.cloudnativepg.intellij.actions.ConnectAction"
+                    text="Connect"
+                    description="Connect to the cluster (primary)"/>
+            <action id="Cnpg.ConnectReplica"
+                    class="com.irulast.cloudnativepg.intellij.actions.ConnectReplicaAction"
+                    text="Connect (Read Replica)"
+                    description="Connect to a read-only replica"/>
+            <separator/>
+            <action id="Cnpg.CopyJdbcUrl"
+                    class="com.irulast.cloudnativepg.intellij.actions.CopyJdbcUrlAction"
+                    text="Copy JDBC URL"
+                    description="Copy JDBC URL to clipboard"/>
+            <separator/>
+            <action id="Cnpg.Disconnect"
+                    class="com.irulast.cloudnativepg.intellij.actions.DisconnectAction"
+                    text="Disconnect"
+                    description="Disconnect from the cluster"/>
+        </group>
+    </actions>
+</idea-plugin>

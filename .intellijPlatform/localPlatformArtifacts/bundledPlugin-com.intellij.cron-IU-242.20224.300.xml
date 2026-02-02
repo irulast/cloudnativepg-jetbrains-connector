@@ -1,0 +1,10 @@
+<ivy-module version="2.0">
+  <info organisation="bundledPlugin" module="com.intellij.cron" revision="IU-242.20224.300"/>
+  <configurations>
+    <conf name="default" visibility="public"/>
+  </configurations>
+  <publications>
+    <artifact name="cron" ext="jar" conf="default" url="plugins/cron/lib"/>
+  </publications>
+  <dependencies/>
+</ivy-module>

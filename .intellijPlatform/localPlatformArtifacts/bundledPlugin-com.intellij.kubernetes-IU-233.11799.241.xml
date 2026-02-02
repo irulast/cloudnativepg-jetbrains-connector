@@ -1,0 +1,13 @@
+<ivy-module version="2.0">
+  <info organisation="bundledPlugin" module="com.intellij.kubernetes" revision="IU-233.11799.241"/>
+  <configurations>
+    <conf name="default" visibility="public"/>
+  </configurations>
+  <publications>
+    <artifact name="clouds-kubernetes" ext="jar" conf="default" url="plugins/clouds-kubernetes/lib"/>
+  </publications>
+  <dependencies>
+    <dependency org="bundledPlugin" name="org.jetbrains.plugins.yaml" rev="IU-233.11799.241"/>
+    <dependency org="bundledPlugin" name="com.intellij.database" rev="IU-233.11799.241"/>
+  </dependencies>
+</ivy-module>

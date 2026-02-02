@@ -1,0 +1,14 @@
+<ivy-module version="2.0">
+  <info organisation="bundledPlugin" module="intellij.indexing.shared.core" revision="IU-233.11799.241"/>
+  <configurations>
+    <conf name="default" visibility="public"/>
+  </configurations>
+  <publications>
+    <artifact name="indexing-shared" ext="jar" conf="default" url="plugins/indexing-shared/lib"/>
+  </publications>
+  <dependencies>
+    <dependency org="bundledPlugin" name="com.intellij.configurationScript" rev="IU-233.11799.241"/>
+    <dependency org="bundledPlugin" name="com.intellij.java" rev="IU-233.11799.241"/>
+    <dependency org="bundledPlugin" name="com.jetbrains.performancePlugin" rev="IU-233.11799.241"/>
+  </dependencies>
+</ivy-module>

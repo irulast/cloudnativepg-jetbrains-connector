@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build Plugin
+        run: ./gradlew buildPlugin --no-configuration-cache
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: CloudNativePG Connector v${{ steps.get_version.outputs.VERSION }}
+          body: |
+            ## CloudNativePG Connector v${{ steps.get_version.outputs.VERSION }}
+
+            ### Installation
+
+            **From JetBrains Marketplace (Recommended):**
+            1. Open your JetBrains IDE
+            2. Go to Settings → Plugins → Marketplace
+            3. Search for "CloudNativePG Connector"
+            4. Click Install
+
+            **Manual Installation:**
+            1. Download the `.zip` file below
+            2. Go to Settings → Plugins → ⚙️ → Install Plugin from Disk...
+            3. Select the downloaded file and restart your IDE
+
+            ### Requirements
+            - JetBrains IDE with Database Tools (IntelliJ IDEA Ultimate, DataGrip, etc.)
+            - kubectl configured with access to your Kubernetes cluster
+            - CloudNativePG operator installed in your cluster
+          files: build/distributions/*.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Uncomment the following to publish to JetBrains Marketplace
+      # - name: Publish to JetBrains Marketplace
+      #   run: ./gradlew publishPlugin --no-configuration-cache
+      #   env:
+      #     PUBLISH_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}

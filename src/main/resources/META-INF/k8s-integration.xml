@@ -1,0 +1,5 @@
+<idea-plugin>
+    <!-- Extensions loaded when JetBrains Kubernetes plugin is available -->
+    <!-- This file is referenced by the optional dependency in plugin.xml -->
+    <!-- Currently we just use the K8s plugin for kubeconfig resolution -->
+</idea-plugin>
