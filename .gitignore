@@ -1,6 +1,9 @@
 # Gradle
 .gradle/
 build/
+
+# IntelliJ Platform Gradle Plugin cache
+.intellijPlatform/
 gradle-app.setting
 !gradle-wrapper.jar
 
