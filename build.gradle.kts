@@ -40,6 +40,7 @@ dependencies {
     // Testing
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.junit.jupiter.api)
+    testImplementation(libs.junit4)  // Required by IntelliJ test framework
 }
 
 intellijPlatform {
