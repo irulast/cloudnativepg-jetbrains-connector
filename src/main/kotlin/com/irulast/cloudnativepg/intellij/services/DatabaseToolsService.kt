@@ -12,7 +12,7 @@ import com.intellij.database.dataSource.DatabaseDriverManager
 import com.intellij.database.dataSource.LocalDataSource
 import com.intellij.database.dataSource.LocalDataSourceManager
 import com.intellij.database.dataSource.SchemaControl
-import com.intellij.database.view.ui.DataSourceManagerDialog
+import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.notification.NotificationAction
@@ -126,16 +126,16 @@ class DatabaseToolsService(private val project: Project) {
                 // Complete the future so the CNPG dialog can close
                 future.complete(dataSource)
 
-                // Open the Properties dialog so user can click "Test Connection" or "OK"
-                // This ensures IntelliJ properly creates dataSources.local.xml through its
-                // normal code path, which is required for the JDBC subprocess to find passwords
+                // Open the Database tool window so the user can see the new data source
+                // and configure it if needed. We use ToolWindowManager which is a public API
+                // instead of DataSourceManagerDialog.showDialog() which is internal.
                 ApplicationManager.getApplication().invokeLater({
                     try {
-                        log.info("Opening Properties dialog for: $dataSourceName")
-                        DataSourceManagerDialog.showDialog(project, dataSource, null)
-                        log.info("Properties dialog closed for: $dataSourceName")
+                        log.info("Opening Database tool window for: $dataSourceName")
+                        openDatabaseToolWindow()
+                        log.info("Database tool window opened for: $dataSourceName")
                     } catch (e: Exception) {
-                        log.error("Failed to open Properties dialog for: ${dataSource.name}", e)
+                        log.error("Failed to open Database tool window for: ${dataSource.name}", e)
                     }
                 }, ModalityState.nonModal())
             } catch (e: Exception) {
@@ -389,16 +389,29 @@ class DatabaseToolsService(private val project: Project) {
 
         val notification = notificationGroup.createNotification(
             "Database Connection Updated",
-            "Click 'Configure' to complete the setup for ${dataSource.name}",
+            "Click 'Open Database' to view ${dataSource.name}. Right-click the data source to edit properties.",
             NotificationType.INFORMATION
         )
 
-        notification.addAction(NotificationAction.createSimple("Configure") {
-            DataSourceManagerDialog.showDialog(project, dataSource, null)
+        notification.addAction(NotificationAction.createSimple("Open Database") {
+            openDatabaseToolWindow()
             notification.expire()
         })
 
         notification.notify(project)
+    }
+
+    /**
+     * Open the Database tool window.
+     * This is a public API alternative to DataSourceManagerDialog.showDialog().
+     */
+    private fun openDatabaseToolWindow() {
+        val toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Database")
+        if (toolWindow != null) {
+            toolWindow.show()
+        } else {
+            log.warn("Database tool window not found")
+        }
     }
 
     companion object {

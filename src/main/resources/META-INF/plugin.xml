@@ -47,6 +47,13 @@
     ]]></description>
 
     <change-notes><![CDATA[
+    <h3>1.0.2</h3>
+    <ul>
+        <li>Fixed JetBrains Marketplace compliance by removing internal API usage</li>
+        <li>Data source configuration now opens via the Database tool window instead of internal dialogs</li>
+        <li>After connecting, open the data source properties (right-click → Properties) to ensure the password is synced by the IDE.  This is a limitation of the Jetbrains API to open it being internal.</li>
+    </ul>
+
     <h3>1.0.1</h3>
     <ul>
         <li>Extended compatibility to support JetBrains IDEs through 2025.3 (build 253.*)</li>

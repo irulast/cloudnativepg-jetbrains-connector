@@ -10,7 +10,7 @@ import com.irulast.cloudnativepg.intellij.services.ManagedConnectionService
 import com.irulast.cloudnativepg.intellij.services.PortForwardService
 import com.irulast.cloudnativepg.intellij.settings.CnpgSettings
 import com.irulast.cloudnativepg.intellij.ui.tree.*
-import com.intellij.database.view.ui.DataSourceManagerDialog
+import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.icons.AllIcons
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
@@ -419,14 +419,31 @@ class CnpgToolWindowPanel(private val project: Project) : SimpleToolWindowPanel(
     }
 
     /**
-     * Open the Database Tools Properties dialog for a cluster's data source.
+     * Open the Database tool window for a cluster's data source.
+     * Users can right-click the data source in the Database tool window to edit properties.
      */
     private fun openDataSourceProperties(cluster: CnpgCluster, isReplica: Boolean) {
         val databaseToolsService = DatabaseToolsService.getInstance(project)
         val dataSource = databaseToolsService.findDataSource(cluster)
 
         if (dataSource != null) {
-            DataSourceManagerDialog.showDialog(project, dataSource, null)
+            // Open the Database tool window - this is a public API
+            val toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Database")
+            if (toolWindow != null) {
+                toolWindow.show()
+                showNotification(
+                    "Database Tool Window Opened",
+                    "Right-click '${dataSource.name}' in the Database tool window to edit properties.",
+                    NotificationType.INFORMATION
+                )
+            } else {
+                log.warn("Database tool window not found")
+                showNotification(
+                    "Database Tool Window Not Available",
+                    "Could not open the Database tool window. Please open it manually from View > Tool Windows > Database.",
+                    NotificationType.WARNING
+                )
+            }
         } else {
             showNotification(
                 "Data Source Not Found",
