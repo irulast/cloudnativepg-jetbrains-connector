@@ -1,9 +1,13 @@
 # CloudNativePG Connector for JetBrains IDEs
 
-[![JetBrains Plugins](https://img.shields.io/jetbrains/plugin/v/com.irulast.cloudnativepg.svg)](https://plugins.jetbrains.com/plugin/com.irulast.cloudnativepg)
+[![JetBrains Plugin Version](https://img.shields.io/jetbrains/plugin/v/30025-cloudnativepg-connector.svg)](https://plugins.jetbrains.com/plugin/30025-cloudnativepg-connector)
+[![JetBrains Plugin Downloads](https://img.shields.io/jetbrains/plugin/d/30025-cloudnativepg-connector.svg)](https://plugins.jetbrains.com/plugin/30025-cloudnativepg-connector)
+[![JetBrains Plugin Rating](https://img.shields.io/jetbrains/plugin/r/rating/30025-cloudnativepg-connector.svg)](https://plugins.jetbrains.com/plugin/30025-cloudnativepg-connector)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 Connect to [CloudNativePG](https://cloudnative-pg.io/) PostgreSQL clusters running in Kubernetes directly from your JetBrains IDE. One click to discover clusters, establish secure connections, and start querying your databases.
+
+**Supported IDEs:** IntelliJ IDEA Ultimate, DataGrip, PyCharm Professional, GoLand, Rider, WebStorm, and other JetBrains IDEs with Database Tools support.
 
 <p align="center">
   <img src=".github/images/tool-window.png" alt="CloudNativePG Tool Window" width="600">
