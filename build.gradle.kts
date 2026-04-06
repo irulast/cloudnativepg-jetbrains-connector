@@ -41,6 +41,7 @@ dependencies {
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.junit.jupiter.api)
     testImplementation(libs.junit4)  // Required by IntelliJ test framework
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 intellijPlatform {
@@ -73,7 +74,7 @@ intellijPlatform {
 
 tasks {
     wrapper {
-        gradleVersion = "8.13"
+        gradleVersion = "9.4.1"
     }
 
     test {

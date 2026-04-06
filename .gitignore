@@ -27,3 +27,7 @@ Thumbs.db
 
 # Kotlin
 *.class
+
+# Signing keys
+*.pem
+*.crt

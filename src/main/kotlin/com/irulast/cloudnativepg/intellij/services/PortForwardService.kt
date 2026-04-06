@@ -12,6 +12,7 @@ import com.intellij.openapi.diagnostic.Logger
 import io.fabric8.kubernetes.client.KubernetesClient
 import io.fabric8.kubernetes.client.LocalPortForward
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import java.net.ServerSocket
 import java.util.concurrent.ConcurrentHashMap
@@ -24,6 +25,7 @@ class PortForwardService : Disposable {
 
     private val log = Logger.getInstance(PortForwardService::class.java)
     private val activeConnections = ConcurrentHashMap<String, ActiveConnection>()
+    private val connectionMutexes = ConcurrentHashMap<String, Mutex>()
 
     /**
      * Start a port-forward to a CloudNativePG cluster.
@@ -38,63 +40,69 @@ class PortForwardService : Disposable {
         cluster: CnpgCluster,
         useReplica: Boolean = false
     ): ConnectionState.Connected = withContext(Dispatchers.IO) {
-        val connectionKey = getConnectionKey(context, cluster)
+        val connectionKey = getConnectionKey(context, cluster, useReplica)
+        val mutex = connectionMutexes.computeIfAbsent(connectionKey) { Mutex() }
 
-        // Check if already connected
-        activeConnections[connectionKey]?.let { existing ->
-            if (existing.isAlive) {
-                log.info("Already connected to ${cluster.displayName}")
-                return@withContext ConnectionState.Connected(
-                    localPort = existing.localPort,
-                    cluster = cluster,
-                    isReplica = existing.isReplica
-                )
-            } else {
-                // Clean up dead connection
-                existing.close()
-                activeConnections.remove(connectionKey)
+        mutex.lock()
+        try {
+            // Check if already connected (inside mutex to prevent races)
+            activeConnections[connectionKey]?.let { existing ->
+                if (existing.isAlive) {
+                    log.info("Already connected to ${cluster.displayName}")
+                    return@withContext ConnectionState.Connected(
+                        localPort = existing.localPort,
+                        cluster = cluster,
+                        isReplica = existing.isReplica
+                    )
+                } else {
+                    // Clean up dead connection
+                    existing.close()
+                    activeConnections.remove(connectionKey)
+                }
             }
-        }
 
-        log.info("Starting port-forward to ${cluster.displayName} (replica: $useReplica)")
+            log.info("Starting port-forward to ${cluster.displayName} (replica: $useReplica)")
 
-        val client = KubernetesClientProvider.getInstance().getClient(context)
+            val client = KubernetesClientProvider.getInstance().getClient(context)
 
-        // Find a ready pod for the service
-        val podName = findReadyPod(client, cluster, useReplica)
-            ?: throw PortForwardException("No ready pods available for ${cluster.displayName}")
+            // Find a ready pod for the service
+            val podName = findReadyPod(client, cluster, useReplica)
+                ?: throw PortForwardException("No ready pods available for ${cluster.displayName}")
 
-        // Find an available local port
-        val localPort = findAvailablePort()
+            // Find an available local port
+            val localPort = findAvailablePort()
 
-        // Start port-forward to the pod
-        val portForward = try {
-            client.pods()
-                .inNamespace(cluster.namespace)
-                .withName(podName)
-                .portForward(5432, localPort)
-        } catch (e: Exception) {
-            throw PortForwardException(
-                "Failed to establish port-forward to ${cluster.displayName}: ${e.message}", e
+            // Start port-forward to the pod
+            val portForward = try {
+                client.pods()
+                    .inNamespace(cluster.namespace)
+                    .withName(podName)
+                    .portForward(5432, localPort)
+            } catch (e: Exception) {
+                throw PortForwardException(
+                    "Failed to establish port-forward to ${cluster.displayName}: ${e.message}", e
+                )
+            }
+
+            val connection = ActiveConnection(
+                cluster = cluster,
+                context = context,
+                localPort = localPort,
+                portForward = portForward,
+                isReplica = useReplica
             )
+
+            activeConnections[connectionKey] = connection
+            log.info("Port-forward established: localhost:$localPort -> $podName:5432")
+
+            ConnectionState.Connected(
+                localPort = localPort,
+                cluster = cluster,
+                isReplica = useReplica
+            )
+        } finally {
+            mutex.unlock()
         }
-
-        val connection = ActiveConnection(
-            cluster = cluster,
-            context = context,
-            localPort = localPort,
-            portForward = portForward,
-            isReplica = useReplica
-        )
-
-        activeConnections[connectionKey] = connection
-        log.info("Port-forward established: localhost:$localPort -> $podName:5432")
-
-        ConnectionState.Connected(
-            localPort = localPort,
-            cluster = cluster,
-            isReplica = useReplica
-        )
     }
 
     /**
@@ -104,10 +112,13 @@ class PortForwardService : Disposable {
      * @param cluster The cluster to disconnect from.
      */
     fun stopPortForward(context: String, cluster: CnpgCluster) {
-        val connectionKey = getConnectionKey(context, cluster)
-        activeConnections.remove(connectionKey)?.let { connection ->
-            log.info("Stopping port-forward to ${cluster.displayName}")
-            connection.close()
+        // Stop both primary and replica connections for this cluster
+        for (replica in listOf(false, true)) {
+            val connectionKey = getConnectionKey(context, cluster, replica)
+            activeConnections.remove(connectionKey)?.let { connection ->
+                log.info("Stopping port-forward to ${cluster.displayName} (replica=$replica)")
+                connection.close()
+            }
         }
     }
 
@@ -144,8 +155,8 @@ class PortForwardService : Disposable {
     /**
      * Get the active connection for a cluster, if any.
      */
-    fun getConnection(context: String, cluster: CnpgCluster): ActiveConnection? {
-        val key = getConnectionKey(context, cluster)
+    fun getConnection(context: String, cluster: CnpgCluster, useReplica: Boolean = false): ActiveConnection? {
+        val key = getConnectionKey(context, cluster, useReplica)
         return activeConnections[key]?.takeIf { it.isAlive }
     }
 
@@ -238,8 +249,9 @@ class PortForwardService : Disposable {
     /**
      * Get a unique key for a connection.
      */
-    private fun getConnectionKey(context: String, cluster: CnpgCluster): String {
-        return "$context/${cluster.key}"
+    private fun getConnectionKey(context: String, cluster: CnpgCluster, useReplica: Boolean = false): String {
+        val suffix = if (useReplica) "ro" else "rw"
+        return "$context/${cluster.key}/$suffix"
     }
 
     override fun dispose() {

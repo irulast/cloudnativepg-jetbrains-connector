@@ -6,34 +6,26 @@
     <description><![CDATA[
     <p>Connect to <a href="https://cloudnative-pg.io/">CloudNativePG</a> PostgreSQL clusters running in Kubernetes directly from your JetBrains IDE.</p>
 
-    <p>One click to discover clusters, establish secure connections, and start querying your databases.</p>
+    <p>Discover clusters, import them as data sources, and start querying &mdash; credentials and port-forwarding are handled automatically.</p>
 
     <h3>Features</h3>
     <ul>
-        <li><b>Automatic Discovery</b> - Finds all CloudNativePG clusters across namespaces in your Kubernetes contexts</li>
-        <li><b>One-Click Connect</b> - Establishes kubectl port-forwarding with a single click</li>
-        <li><b>Secure Credentials</b> - Automatically extracts credentials from Kubernetes secrets</li>
-        <li><b>Database Tools Integration</b> - Creates data sources in JetBrains Database Tools for full SQL support</li>
+        <li><b>Cloud Import</b> - Discover CloudNativePG clusters via Database &rarr; Import from Cloud</li>
+        <li><b>Automatic Port-Forwarding</b> - kubectl port-forwards are established on demand when you connect</li>
+        <li><b>Live Credentials</b> - Credentials are fetched fresh from Kubernetes secrets on every connection</li>
+        <li><b>Zero Configuration</b> - No passwords to store or sync; the auth provider handles everything</li>
         <li><b>Multi-Context Support</b> - Switch between Kubernetes contexts to access clusters in different environments</li>
-        <li><b>Primary &amp; Replica Connections</b> - Connect to the primary instance or read-only replicas</li>
-        <li><b>Connection Management</b> - Automatically reconnects on IDE startup and cleans up when data sources are removed</li>
+        <li><b>Primary &amp; Replica</b> - Connect to the primary instance or read-only replicas</li>
+        <li><b>Auto-Reconnect</b> - Port-forwards are re-established automatically when the IDE reconnects</li>
     </ul>
 
     <h3>Getting Started</h3>
     <ol>
-        <li>Open the <b>CloudNativePG</b> tool window from the right sidebar</li>
-        <li>Select your Kubernetes context from the dropdown</li>
-        <li>Browse your clusters organized by namespace</li>
-        <li>Double-click a cluster to connect (or right-click for more options)</li>
-        <li>The database appears in Database Tools, ready to query</li>
-    </ol>
-
-    <h3>Alternative: From Database Window</h3>
-    <ol>
-        <li>In the Database window, click <b>+</b> (New) or right-click</li>
-        <li>Select <b>"Data Source from CloudNativePG"</b></li>
-        <li>Choose your Kubernetes context and cluster</li>
-        <li>Click Connect</li>
+        <li>Open the <b>Database</b> tool window</li>
+        <li>Click <b>+</b> &rarr; <b>Import from Cloud</b></li>
+        <li>Select <b>CloudNativePG (Kubernetes)</b></li>
+        <li>Choose your Kubernetes context and optionally filter by namespace</li>
+        <li>Import the clusters you want and connect</li>
     </ol>
 
     <h3>Requirements</h3>
@@ -47,30 +39,29 @@
     ]]></description>
 
     <change-notes><![CDATA[
+    <h3>2.0.0</h3>
+    <ul>
+        <li>Native Database Tools integration via CloudDataSourceProvider and DatabaseAuthProvider APIs</li>
+        <li>Discover and import clusters from Database &rarr; Import from Cloud &rarr; CloudNativePG</li>
+        <li>Credentials fetched live from Kubernetes secrets on every connection (no more manual password sync)</li>
+        <li>Port-forwarding established automatically on connect, re-established on reconnect</li>
+        <li>Removed custom tool window in favor of native Database tool window integration</li>
+        <li>Requires IntelliJ 2026.1 or later</li>
+    </ul>
+
     <h3>1.0.2</h3>
     <ul>
         <li>Fixed JetBrains Marketplace compliance by removing internal API usage</li>
-        <li>Data source configuration now opens via the Database tool window instead of internal dialogs</li>
-        <li>After connecting, open the data source properties (right-click → Properties) to ensure the password is synced by the IDE.  This is a limitation of the Jetbrains API to open it being internal.</li>
     </ul>
 
     <h3>1.0.1</h3>
     <ul>
-        <li>Extended compatibility to support JetBrains IDEs through 2025.3 (build 253.*)</li>
+        <li>Extended compatibility to support JetBrains IDEs through 2025.3</li>
     </ul>
 
     <h3>1.0.0</h3>
     <ul>
         <li>Initial public release</li>
-        <li>CloudNativePG cluster discovery across all namespaces</li>
-        <li>One-click port-forwarding to primary and replica instances</li>
-        <li>Automatic credential extraction from Kubernetes secrets</li>
-        <li>Full JetBrains Database Tools integration</li>
-        <li>Multi-context Kubernetes support</li>
-        <li>Auto-reconnect on IDE startup</li>
-        <li>Automatic cleanup when data sources are removed</li>
-        <li>Tool window with active connections panel</li>
-        <li>Connection troubleshooting via configure button</li>
     </ul>
     ]]></change-notes>
 
@@ -78,16 +69,7 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.database</depends>
 
-    <!-- Optional: Reuse JetBrains K8s plugin config -->
-    <depends optional="true" config-file="k8s-integration.xml">com.intellij.kubernetes</depends>
-
     <extensions defaultExtensionNs="com.intellij">
-        <!-- Tool Window -->
-        <toolWindow id="CloudNativePG"
-                    anchor="right"
-                    icon="/icons/cnpg.svg"
-                    factoryClass="com.irulast.cloudnativepg.intellij.ui.CnpgToolWindowFactory"/>
-
         <!-- Settings -->
         <applicationConfigurable
                 parentId="tools"
@@ -102,75 +84,22 @@
         <applicationService
                 serviceImplementation="com.irulast.cloudnativepg.intellij.kubernetes.KubernetesClientProvider"/>
         <applicationService
-                serviceImplementation="com.irulast.cloudnativepg.intellij.services.CnpgService"/>
-        <applicationService
                 serviceImplementation="com.irulast.cloudnativepg.intellij.services.PortForwardService"/>
-        <applicationService
-                serviceImplementation="com.irulast.cloudnativepg.intellij.services.ConnectionManager"/>
-        <projectService
-                serviceImplementation="com.irulast.cloudnativepg.intellij.services.DatabaseToolsService"/>
-        <projectService
-                serviceImplementation="com.irulast.cloudnativepg.intellij.services.ManagedConnectionService"/>
-
-        <!-- Startup Activity - Initialize connection management when project opens -->
-        <postStartupActivity
-                implementation="com.irulast.cloudnativepg.intellij.listeners.CnpgStartupActivity"/>
 
         <!-- Notifications -->
         <notificationGroup id="CloudNativePG Connector"
                           displayType="BALLOON"
                           isLogByDefault="true"/>
-        <!-- Sticky notifications for actions that require user attention -->
-        <notificationGroup id="CloudNativePG Connector - Action Required"
-                          displayType="STICKY_BALLOON"
-                          isLogByDefault="true"
-                          toolWindowId="CloudNativePG"/>
     </extensions>
 
-    <actions>
-        <!-- Database Window Integration - Add "CloudNativePG Cluster..." to New/Add Data Source menu -->
-        <action id="Cnpg.NewDataSource"
-                class="com.irulast.cloudnativepg.intellij.actions.NewCnpgDataSourceAction"
-                text="Data Source from CloudNativePG"
-                description="Create a data source from a CloudNativePG cluster in Kubernetes"
-                icon="/icons/cnpg.svg">
-            <add-to-group group-id="DatabaseView.AddDataSourceGroup" anchor="first"/>
-            <add-to-group group-id="DatabaseViewPopupMenu" anchor="first"/>
-        </action>
+    <!-- Database Tools integration -->
+    <extensions defaultExtensionNs="com.intellij.database">
+        <!-- Auth provider: handles K8s secret credentials + port-forwarding at connection time -->
+        <connectionInterceptor
+                implementation="com.irulast.cloudnativepg.intellij.auth.CnpgAuthProvider"/>
 
-        <group id="Cnpg.ToolWindow.Toolbar" text="CloudNativePG Toolbar">
-            <action id="Cnpg.Refresh"
-                    class="com.irulast.cloudnativepg.intellij.actions.RefreshAction"
-                    text="Refresh"
-                    description="Refresh CloudNativePG clusters"
-                    icon="AllIcons.Actions.Refresh"/>
-            <separator/>
-            <action id="Cnpg.Settings"
-                    class="com.irulast.cloudnativepg.intellij.actions.OpenSettingsAction"
-                    text="Settings"
-                    description="Open CloudNativePG Connector settings"
-                    icon="AllIcons.General.Settings"/>
-        </group>
-
-        <group id="Cnpg.TreeContextMenu" text="CloudNativePG Context Menu" popup="true">
-            <action id="Cnpg.Connect"
-                    class="com.irulast.cloudnativepg.intellij.actions.ConnectAction"
-                    text="Connect"
-                    description="Connect to the cluster (primary)"/>
-            <action id="Cnpg.ConnectReplica"
-                    class="com.irulast.cloudnativepg.intellij.actions.ConnectReplicaAction"
-                    text="Connect (Read Replica)"
-                    description="Connect to a read-only replica"/>
-            <separator/>
-            <action id="Cnpg.CopyJdbcUrl"
-                    class="com.irulast.cloudnativepg.intellij.actions.CopyJdbcUrlAction"
-                    text="Copy JDBC URL"
-                    description="Copy JDBC URL to clipboard"/>
-            <separator/>
-            <action id="Cnpg.Disconnect"
-                    class="com.irulast.cloudnativepg.intellij.actions.DisconnectAction"
-                    text="Disconnect"
-                    description="Disconnect from the cluster"/>
-        </group>
-    </actions>
+        <!-- Cloud provider: discover clusters via Import from Cloud -->
+        <cloudDataSourceProvider key="cnpg"
+                implementationClass="com.irulast.cloudnativepg.intellij.cloud.CnpgCloudDataSourceProvider"/>
+    </extensions>
 </idea-plugin>

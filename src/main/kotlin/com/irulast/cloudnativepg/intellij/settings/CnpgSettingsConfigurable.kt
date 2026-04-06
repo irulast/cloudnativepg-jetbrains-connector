@@ -2,7 +2,6 @@ package com.irulast.cloudnativepg.intellij.settings
 
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.ui.DialogPanel
-import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.dsl.builder.*
 
 /**
@@ -13,7 +12,7 @@ class CnpgSettingsConfigurable : BoundConfigurable("CloudNativePG Connector") {
     private val settings = CnpgSettings.getInstance()
 
     override fun createPanel(): DialogPanel = panel {
-        group("Connection Settings") {
+        group("Port Forwarding") {
             row("Local port range:") {
                 intTextField(1024..65535)
                     .bindIntText(settings::portRangeStart)
@@ -25,33 +24,13 @@ class CnpgSettingsConfigurable : BoundConfigurable("CloudNativePG Connector") {
             }.comment("Port range for local port-forwarding (default: 15432-15532)")
 
             row {
-                checkBox("Reconnect managed data sources on IDE startup")
-                    .bindSelected(settings::autoReconnectOnStartup)
-            }.comment("Re-establish port-forwards and refresh credentials for CloudNativePG data sources")
-
-            row {
-                checkBox("Auto-reconnect on connection loss")
-                    .bindSelected(settings::autoReconnect)
-            }
-
-            row {
                 checkBox("Show notifications on connection events")
                     .bindSelected(settings::showNotifications)
             }
         }
 
-        group("Database Tools Integration") {
-            row {
-                checkBox("Automatically add data source on connect")
-                    .bindSelected(settings::autoAddToDbTools)
-            }
-
-            row {
-                checkBox("Remove data source on disconnect")
-                    .bindSelected(settings::autoRemoveOnDisconnect)
-            }
-
-            row("Data source naming:") {
+        group("Data Source Naming") {
+            row("Naming pattern:") {
                 comboBox(CnpgSettings.NAMING_PATTERNS.map { it.first })
                     .bindItem(
                         { settings.dataSourceNamingPattern },

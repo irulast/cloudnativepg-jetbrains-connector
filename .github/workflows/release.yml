@@ -25,6 +25,13 @@ jobs:
       - name: Build Plugin
         run: ./gradlew buildPlugin --no-configuration-cache
 
+      - name: Sign Plugin
+        run: ./gradlew signPlugin --no-configuration-cache
+        env:
+          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
+
       - name: Get version from tag
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
@@ -59,8 +66,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Uncomment the following to publish to JetBrains Marketplace
-      # - name: Publish to JetBrains Marketplace
-      #   run: ./gradlew publishPlugin --no-configuration-cache
-      #   env:
-      #     PUBLISH_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
+      - name: Publish to JetBrains Marketplace
+        run: ./gradlew publishPlugin --no-configuration-cache
+        env:
+          PUBLISH_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
